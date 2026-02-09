@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Be My Valentine 💕</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #ff1744;
+            margin-bottom: 3rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .button-container {
+            position: relative;
+            width: 80vw;
+            height: 50vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button {
+            position: absolute;
+            font-size: 1.5rem;
+            padding: 20px 40px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #yesBtn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            z-index: 10;
+        }
+
+        #yesBtn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #noBtn {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #666;
+            z-index: 5;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .hearts {
+            position: fixed;
+            font-size: 2rem;
+            animation: float 3s ease-in infinite;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Im sorry I said that tho😗 but can you be my Valentine Kavya😋💕?</h1>
+    <div class="button-container" id="container">
+        <button id="yesBtn">Yes! 💖</button>
+        <button id="noBtn">No</button>
+    </div>
+
+    <script>
+        const yesBtn = document.getElementById('yesBtn');
+        const noBtn = document.getElementById('noBtn');
+        const container = document.getElementById('container');
+
+        let yesBtnScale = 1;
+        let noBtnPos = { x: 100, y: 0 }; // Initial offset from center
+        let noBtnOriginalPos = { x: 100, y: 0 };
+        let noBtnVelocity = { x: 0, y: 0 };
+
+        // Initialize button positions
+        function initPositions() {
+            const containerRect = container.getBoundingClientRect();
+            yesBtn.style.left = '50%';
+            yesBtn.style.top = '50%';
+            yesBtn.style.transform = 'translate(-50%, -50%)';
+            
+            noBtn.style.left = `calc(50% + ${noBtnPos.x}px)`;
+            noBtn.style.top = `calc(50% + ${noBtnPos.y}px)`;
+            noBtn.style.transform = 'translate(-50%, -50%)';
+        }
+
+        initPositions();
+
+        // Get button bounds with padding for hitbox
+        function getButtonBounds(btn, padding = 0) {
+            const rect = btn.getBoundingClientRect();
+            return {
+                left: rect.left - padding,
+                right: rect.right + padding,
+                top: rect.top - padding,
+                bottom: rect.bottom + padding,
+                centerX: rect.left + rect.width / 2,
+                centerY: rect.top + rect.height / 2,
+                width: rect.width + padding * 2,
+                height: rect.height + padding * 2
+            };
+        }
+
+        // Check collision between two circles
+        function checkCircleCollision(bounds1, bounds2) {
+            const dx = bounds1.centerX - bounds2.centerX;
+            const dy = bounds1.centerY - bounds2.centerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const minDistance = (bounds1.width + bounds2.width) / 2;
+            return distance < minDistance;
+        }
+
+        // Move "No" button away from cursor
+        function moveNoButton(mouseX, mouseY) {
+            const noBounds = getButtonBounds(noBtn, 80); // Large hitbox
+            const dx = noBounds.centerX - mouseX;
+            const dy = noBounds.centerY - mouseY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const detectionRadius = 150;
+
+            if (distance < detectionRadius) {
+                // Calculate escape direction
+                const angle = Math.atan2(dy, dx);
+                const force = (detectionRadius - distance) / detectionRadius;
+                
+                noBtnVelocity.x += Math.cos(angle) * force * 15;
+                noBtnVelocity.y += Math.sin(angle) * force * 15;
+            } else {
+                // Return to original position with spring physics
+                const returnForce = 0.05;
+                const dx = noBtnOriginalPos.x - noBtnPos.x;
+                const dy = noBtnOriginalPos.y - noBtnPos.y;
+                
+                noBtnVelocity.x += dx * returnForce;
+                noBtnVelocity.y += dy * returnForce;
+            }
+
+            // Apply damping
+            noBtnVelocity.x *= 0.85;
+            noBtnVelocity.y *= 0.85;
+
+            // Update position
+            noBtnPos.x += noBtnVelocity.x;
+            noBtnPos.y += noBtnVelocity.y;
+
+            // Check collision with Yes button and push away
+            const yesBounds = getButtonBounds(yesBtn, 10);
+            const noBoundsCollision = {
+                centerX: container.getBoundingClientRect().left + container.offsetWidth / 2 + noBtnPos.x,
+                centerY: container.getBoundingClientRect().top + container.offsetHeight / 2 + noBtnPos.y,
+                width: noBtn.offsetWidth,
+                height: noBtn.offsetHeight
+            };
+
+            if (checkCircleCollision(yesBounds, noBoundsCollision)) {
+                const dx = noBoundsCollision.centerX - yesBounds.centerX;
+                const dy = noBoundsCollision.centerY - yesBounds.centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const overlap = (yesBounds.width + noBoundsCollision.width) / 2 - distance;
+                
+                if (overlap > 0) {
+                    const angle = Math.atan2(dy, dx);
+                    noBtnPos.x += Math.cos(angle) * overlap;
+                    noBtnPos.y += Math.sin(angle) * overlap;
+                    noBtnVelocity.x += Math.cos(angle) * 10;
+                    noBtnVelocity.y += Math.sin(angle) * 10;
+                }
+            }
+
+            // Keep within screen bounds with padding
+            const containerRect = container.getBoundingClientRect();
+            const maxX = containerRect.width / 2 - noBtn.offsetWidth / 2 - 20;
+            const maxY = containerRect.height / 2 - noBtn.offsetHeight / 2 - 20;
+            
+            noBtnPos.x = Math.max(-maxX, Math.min(maxX, noBtnPos.x));
+            noBtnPos.y = Math.max(-maxY, Math.min(maxY, noBtnPos.y));
+
+            // Update button position
+            noBtn.style.left = `calc(50% + ${noBtnPos.x}px)`;
+            noBtn.style.top = `calc(50% + ${noBtnPos.y}px)`;
+        }
+
+        // Track mouse movement
+        let animationFrameId;
+        document.addEventListener('mousemove', (e) => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            animationFrameId = requestAnimationFrame(() => {
+                moveNoButton(e.clientX, e.clientY);
+            });
+        });
+
+        // Yes button click
+        yesBtn.addEventListener('click', () => {
+            // Create hearts animation
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement('div');
+                    heart.className = 'hearts';
+                    heart.textContent = '💕';
+                    heart.style.left = Math.random() * window.innerWidth + 'px';
+                    heart.style.top = window.innerHeight + 'px';
+                    heart.style.animationDelay = Math.random() * 0.5 + 's';
+                    document.body.appendChild(heart);
+                    
+                    setTimeout(() => heart.remove(), 3000);
+                }, i * 100);
+            }
+
+            // Show message
+            setTimeout(() => {
+                document.body.innerHTML = `
+                    <div style="text-align: center;">
+                        <h1 style="font-size: 4rem; color: #ff1744; margin-bottom: 2rem;">
+                            Yay😆! 💕
+                        </h1>
+                        <p style="font-size: 2rem; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                            I knew you'd say yes! 🤭
+                        </p>
+                    </div>
+                `;
+            }, 1500);
+        });
+
+        // Yes button hover - make it bigger
+        yesBtn.addEventListener('mouseenter', () => {
+            const growInterval = setInterval(() => {
+                yesBtnScale += 0.05;
+                yesBtn.style.transform = `translate(-50%, -50%) scale(${yesBtnScale})`;
+                
+                if (yesBtnScale >= 2) {
+                    clearInterval(growInterval);
+                }
+            }, 50);
+        });
+
+        // Update original position when Yes grows
+        let lastYesSize = yesBtn.offsetWidth;
+        setInterval(() => {
+            const currentYesSize = yesBtn.offsetWidth;
+            if (currentYesSize !== lastYesSize) {
+                // Push No button away as Yes grows
+                const yesBounds = getButtonBounds(yesBtn, 0);
+                const noBoundsCheck = {
+                    centerX: container.getBoundingClientRect().left + container.offsetWidth / 2 + noBtnOriginalPos.x,
+                    centerY: container.getBoundingClientRect().top + container.offsetHeight / 2 + noBtnOriginalPos.y,
+                    width: noBtn.offsetWidth,
+                    height: noBtn.offsetHeight
+                };
+
+                if (checkCircleCollision(yesBounds, noBoundsCheck)) {
+                    const dx = noBoundsCheck.centerX - yesBounds.centerX;
+                    const dy = noBoundsCheck.centerY - yesBounds.centerY;
+                    const angle = Math.atan2(dy, dx);
+                    const minDistance = (yesBounds.width + noBoundsCheck.width) / 2 + 20;
+                    
+                    noBtnOriginalPos.x = Math.cos(angle) * minDistance;
+                    noBtnOriginalPos.y = Math.sin(angle) * minDistance;
+                }
+                
+                lastYesSize = currentYesSize;
+            }
+        }, 100);
+
+        // Continuous animation loop for smooth movement
+        function animate() {
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
